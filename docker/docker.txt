@@ -1,0 +1,218 @@
+Docker
+
+TLDR:
+Docker is Docker Engine.
+		REST API (external comm to docker setup)
+		Docker host
+				daemon/server (dockerd) installed there
+				has containers and images, along w/ apps
+		Docker client (docker cli)
+				controls docker
+docker registry ties architecture together
+container
+		a running image + a temporary writeable section (file system)
+				***writeable section is not storage volume/driver!
+image
+		has layers: manifest, base OS, configuration (users, settings, ports to expose, etc.), the one app (single concern)
+dockerfile
+		instructions for building container
+docker data storage is outside of container
+
+
+
+runs on a server
+Docker community edition
+
+Cluster of docker hosts
+
+Docker
+	Community Edition
+	Desktop Edition
+	Enterprise Edition
+
+Containers linux or windows-based
+
+Universal control plane
+	one web-based UI controls all nodes
+
+Docker trusted registry
+	place that stores images
+	on-premise
+	web-based UI
+	stateless
+Docker Hub hosts registries
+Amazon EC2 also hosts registries
+
+tag image before pushing to registry
+pull: download image from repository
+
+Docker repository
+	related images
+	same name, different tag
+	goes in a registry
+
+Namespaces filter containers
+
+cgroups limit resources
+
+
+docker swarm
+		cluster management and orchestration
+
+Use githash as image tag
+	tag goes to container
+
+8080 - Jenkins default port
+22 ssh
+
+squash
+	makes image layers into a single layer
+	reduces image size
+	eliminates image history
+	.tar does the same
+	export and importing the image does the same
+
+Docker EE Trusted Registry
+	checks for vulnerabilities with image scanning
+
+Docker Open Source Notary
+	checks content trust (website is what it claims to be) with image signing
+
+registry search
+	$docker search term
+	options
+		--filter "is-official=true"
+		--filter=stars=3
+		--filter "is-official=true" --filter=stars=3
+		--limit=100
+
+delete image from local host
+	$docker image rm --force imageTagName
+
+delete image from registry
+	go into registry, delete repository
+
+
+docker data storage options (all are layered)
+	object storage
+	block storage
+
+docker storage types
+	volume
+	bind mount
+
+block storage
+	no metadata
+	fixed chunks of data
+	good for i/o-intensive apps
+
+object storage
+	has metadata, fixed identifier
+	objects aren't organized
+
+storage driver
+	overlay2, overlay
+	devicemapper
+	documentation offers guidance on what storage driver to use for certain distributions
+	***images/container cannot use storage driver after changing storage driver out***
+
+network drivers
+	bridge (default)
+	host
+	overlay (Docker swarm, EE only)
+	macvlan
+	none
+
+network access for container
+	bridge network by default
+	outgoing access only by default
+	publish port to allow inbound access
+
+publish port
+	$docker run -P
+	$docker run -p 80
+
+host port publishing
+	used w/ global mode service
+	publishes single port
+	specify mode=host
+
+ingress port publishing
+	used w/ replicated mode service
+	port goes to replicated container in the cluster (more limited)
+
+DNS config
+	can use dns option - per container
+		$docker container run --dns 192.168.0.2 ...
+	per network
+	per host
+		edit daemon.json, add {"dns":["192.168.0.2"]}
+		restart docker $sudo systemctl restart docker
+
+config load balancing
+	use Docker Swarm
+
+configure network host
+	$docker run --network host myContainer
+
+docker structure - bottom-up
+	cloud/physical/virtual server
+	docker ee engine
+	universical control plane
+	docker trusted registry
+	containers/apps
+
+network traffic
+	via API
+
+see current port
+	$docker container port containerName
+	$docker container inspect containerName
+
+see logs to troubleshoot network issues
+	$docker container logs containerName
+	see options: $docker container logs --help
+
+swarm manager
+	maintain cluster state
+	http api endpoints
+
+swarm worker
+	executes container workloads
+
+key rotation
+	$docker swarm ca --rotate
+
+docker content trust
+	verifies image is what you expect - image is signed
+
+signing an image
+	$export DOCKER_CONTENT_TRUST=1
+		(self-signed)
+	UCP can make sure only signed images are run
+
+
+role-based access control
+	identify roles
+
+
+docker access control model - acl of docker
+	subject
+		user, team, org
+	role
+		view-only, restricted, etc
+	resource set
+		swarm collections
+	grant
+		combo of subject, role, and resource set
+subject
+
+certificate setup
+	admin settings > certificate
+
+ldap/ad for ucp
+
+
+security scans for images
+	enable (globally) in docker trusted registry settings
+	when creating a new image, scan on push

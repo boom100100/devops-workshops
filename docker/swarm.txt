@@ -1,0 +1,33 @@
+Swarm
+
+TLDR:
+Container orchestration
+Nodes
+	the host
+	controlled by swarm
+containers
+	runs on one host/node
+	shares network and storage w/ other containers
+	hard to scale and keep available
+tasks
+services
+	runs across all targeted nodes
+	highly available, scalable
+
+
+
+
+docker stack has:
+	web service
+	db service
+	report service
+	stack file:
+		defines app to swarm cluster
+		YAML
+	$docker stack deploy ...
+	$docker stack services
+
+Replicated service vs global service
+	limited assignment v. completely filling a cluster
+
+Can create service from template

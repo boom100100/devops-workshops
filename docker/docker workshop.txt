@@ -1,0 +1,267 @@
+Set up Vagrant as host
+  Create directory for host machine
+  Include Vagrantfile, bootstrap.sh, and playbook.yml
+  Supplied code creates host01 (Vagrantfile) with script to install docker community edition (bootstrap.sh)
+#Vagrantfile
+Vagrant.configure("2") do |config|
+  config.vm.hostname = "host01"
+  config.vm.box = "bento/ubuntu-16.04"
+  config.vm.provision :shell, path: "bootstrap.sh"
+  config.vm.network :forwarded_port, guest: 80, host: 4567
+end
+
+
+
+
+#bootstrap.sh
+  sudo apt-get update
+  sudo apt-get install -y apache2
+
+
+  #install docker
+  sudo apt-get remove docker docker-engine docker-ce docker.io
+  sudo apt-get install \
+      apt-transport-https \
+      ca-certificates \
+      curl \
+      software-properties-common
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  apt-key fingerprint 0EBFCD88
+  add-apt-repository \
+     "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+     $(lsb_release -cs) \
+     stable"
+  sudo apt-get update
+  yes | sudo apt-get install docker-ce=17.12.0~ce-0~ubuntu
+  sudo groupadd docker
+  sudo usermod -aG docker $vagrant
+  sudo docker version
+  sudo docker run hello-world
+  sudo docker swarm init
+
+  #vagrant settings
+  if ! [ -L /var/www ]; then
+    rm -rf /var/www
+    ln -fs /vagrant /var/www
+  fi
+
+
+
+#playbook.yml
+---
+
+- name: Network Getting Started First Playbook
+  connection: network_cli
+  gather_facts: false
+  hosts: all
+  tasks:
+
+    - name: Get config for VyOS devices
+      vyos_facts:
+        gather_subset: all
+
+    - name: Display the config
+      debug:
+        msg: "The hostname is {{ ansible_net_hostname }} and the OS is {{ ansible_net_version }}"
+
+
+        Run automated config in directory with Vagrantfile
+          $vagrant up
+        Access vm
+          $vagrant ssh
+
+Confirm Docker installed from vm
+    $docker -v
+
+Check Storage Driver from vm
+    $docker info | more
+      is overlay2
+
+Docker images
+    repository
+        docker images w/ same name, different tags
+    registry
+        place for storing images (e.g. hub.docker.com)
+    see images (from hub.docker.com registry)
+        $docker login
+        $docker images
+    get image
+        $docker pull <image-name>
+        $docker pull <dockerid/imagename:tag>
+    upload image
+        $docker push <dockerid/imagename:tag>
+    remove image
+        $docker image rm IMAGE[:TAG] -f
+        $docker image rm --force IMAGE[:TAG]
+    tag image
+        $docker images
+        $docker tag <unique-image-id-characters> <dockerid/imagename:tag>
+
+Docker Swarm
+    cluster, orchestration
+    set up
+        $docker swarm init
+    add manager or add worker
+        navigate to a manager of the swarm and do the following
+        $docker swarm join-token (worker|manager)
+        $docker swarm join --token TOKEN
+    see what's present
+        $docker node ls
+
+Docker Service
+    a collection of containers
+        can run on multiple nodes because they are more than one container
+    create service that will distribute as evenly as possible throughout all nodes in the cluster
+        $docker service create --name NAME --replicas=6 IMAGE_NAME
+        ex. $docker service create --name webapp1 --replicas=6 nginx
+    list services
+      $docker service ls
+      service creates related containers
+    see containers
+        $docker ps
+
+Docker service logs
+    $docker service logs SERVICE_NAME
+    $docker service logs -f SERVICE_NAME
+        real-time
+
+
+Visualize swarms
+    install visualizer
+        $docker run -it -d -p 5000:8080 -v /var/run/docker.sock dockersamples/visualizer
+    give it data to visualize
+        $docker service create --name NAME --replicas=6 IMAGE_NAME
+
+Confirm Docker starts on boot
+    $systemctl status docker
+#pared output - look for enabled/disabled
+Loaded: loaded (/lib/systemd/system/docker.service; NOTE enabled; vendor preset: e
+NOTE Active: active (running)
+    $sudo systemctl enable docker
+    $sudo systemctl disable docker
+
+Docker Backup
+    swarm
+        use swarm manager node
+        $sudo systemctl stop docker
+        $cd <docker folder /var/lib/docker - the one with the swarm directory>
+        $ls -a
+            to confirm it's the right folder
+        $cp -R swarm <destination>
+        $sudo systemctl start docker
+    universal control plane
+        backup requires stopping local UCP containers
+#bash code below
+docker container run \
+  --log-driver none --rm \
+  --interactive \
+  --name ucp \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  docker/ucp:2.2.6 backup \
+  --id <ucp-instance-id> \
+  --passphrase "secret" > /tmp/backup.tar
+
+
+
+    docker trusted registry
+        registry content data
+            $sudo tar -cf backup-images.tar \ $(dirname $(docker volume inspect --format '{{.Mountpoint}}' dtr-registry-<replica-id>))
+        dtr metadata
+            info about images
+#bash command below
+read -sp 'ucp password: ' UCP_PASSWORD; \
+docker run --log-driver none -i --rm \
+--env UCP_PASSWORD=$UCP_PASSWORD \
+docker/dtr:2.3.11 backup \
+--ucp-url <ucp-url> \
+ --ucp-insecure-tls \
+ --ucp-username <ucp-username> \
+ --existing-replica-id <replica-id> > backup-metadata.tar
+
+
+
+    container volume data
+        (further research necessary for backup strategy.)
+
+Docker Status Checks
+    $docker version
+    $docker info | more
+    $docker ps
+    $docker ps -a
+    $docker node ls
+        run from docker manager only
+
+Docker Logging
+    see logs
+        $docker logs <unique-first-characters-of-container-id>
+    change logger for daemon
+        $$docker info | grep "Logging Driver"
+        $su
+        $cd /etc/docker
+        $ls -lai
+        $touch daemon.json #to change defaults
+    change logger for specific container
+
+        $docker run --log-driver=syslog--log-opt syslog-address=udp://1.1.1.1 alpine
+
+Docker Troubleshooting
+    is host kernal compatible with Docker version?
+    is DNS configured properly?
+    is container compatible with OS?
+    run commands without sudo
+        $sudo usermod -aG docker $USERNAME
+
+Build Docker Image
+    create Dockerfile file in host, do docker-build on node
+    syntax reference at https://docs.docker.com/engine/reference/builder/#dockerfile-examples
+    Dockerfile
+    docker-build
+        $man dockerfile
+        $man docker-build
+
+Dockerfile build image
+    decide one concern that image will fulfill
+    from virtual machine, create directory, build
+    $mkdir dockertmp
+    $cp Dockerfile dockertmp/dd-docker
+    $cd dockertmp
+    $docker build -f dd-docker .
+        that's docker, build, option, location of docker file, context of where are files that go into build
+    $docker build --no-cache=true -f ./dd-docker .
+    $docker build -f dd-docker -t ubuntu:v1
+    $docker build --squash -f dd-docker -t ubuntu:v1
+        --squash combines image layers into one layer
+        exporting and importing container also does that
+
+Docker image build layers
+    $docker image history IMAGE[:TAG]
+
+Inspect Docker image
+    $docker image inspect ubuntu:latest
+    $docker image inspect ubuntu:latest | grep Os
+    $docker image inspect ubuntu:latest --format='{{.ContainerConfig}}'
+    $docker image inspect ubuntu:latest --format='{{.ContainerConfig.Hostname}}'
+    $docker image inspect ubuntu:latest --format='{{json .ContainerConfig}}'
+
+Docker tags
+    for identifying OS or app version (or versions of other things)
+    tag for target image that refers to source image
+        $docker tag SOURCE_IMAGE:TAG TARGET_IMAGE:TAG
+
+Docker Registry
+    holds images
+    there are enterprise and open-source versions
+    local setup:
+        $docker run -d -p 5000:5000 --restart=always --name registry registry:2
+        $docker tag ubuntu:latest localhost:5000/ubuntu:v2
+        $docker push localhost:5000/ubuntu:v2
+        $docker image rm localhost:5000/ubuntu:v2
+        $docker images
+        $docker push localhost:5000/ubuntu:v2
+    signing in:
+        Docker hub
+            $docker login
+        Docker local registry (not Docker Trusted Registry) (using example supplied in this section)
+            $docker login localhost:5000
+    signing out:
+        $docker logout
