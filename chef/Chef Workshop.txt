@@ -1,0 +1,114 @@
+Install Chef
+    locally
+        $brew cask install chef-workstation
+    remotely
+        set up Vagrant vm
+            $vagrant init
+#Vagrantfile
+Vagrant.configure("2") do |config|
+    # Every Vagrant development environment requires a box. You can search for
+    # boxes at https://atlas.hashicorp.com/search.
+    config.vm.box = "bento/ubuntu-14.04"
+
+    # Create a forwarded port mapping which allows access to a specific port
+    # within the machine from a port on the host machine. In the example below,
+    # accessing "localhost:8080" will access port 80 on the guest machine.
+    config.vm.network "forwarded_port", guest: 80, host: 8080
+end
+
+
+
+    ssh into it
+        $vagrant ssh
+    in vm, install Chef
+        $wget https://packages.chef.io/files/stable/chef-workstation/20.6.62/ubuntu/18.04/chef-workstation_20.6.62-1_amd64.deb
+        $sudo dpkg -i chef-server-core_*.deb
+        e.g. $sudo dpkg -i chef-workstation_20.6.62-1_amd64.deb
+        $rm chef-server-core_*.deb
+        $sudo chef-server-ctl reconfigure
+        $pwd
+        $cd /
+        $mkdir .chef
+
+Resources
+    units of configuration
+    has type, name
+    properties
+    actions
+
+Recipe
+    a file
+    consists of resources
+    create
+        $vim setup.rb
+        $i
+#setup.rb
+file '/home/vagrant/message' do
+	content 'welcome to message'
+	owner 'root'
+	mode '0644'
+end
+
+
+
+#setup2.rb
+package 'ntp' do
+	action :install
+end
+
+
+
+        $esc :wq
+    run
+        $sudo chef-client -z setup.rb #same as $sudo chef-client --local-mode setup.rb
+
+Cookbook
+    group of related recipes
+    create
+        $mkdir cookbooks
+        $chef generate cookbook cookbooks/lamp
+        recipe within cookbook
+            $chef generate recipe cookbooks/lamp web
+#web
+#
+# Cookbook:: lamp
+# Recipe:: web
+#
+# Copyright:: 2020, The Authors, All Rights Reserved.
+#same as
+#package 'apache2' do
+#  action :create
+#end
+
+package 'apache2'
+file 'var/www/html/index.html' do
+  content '<h1>Hello, world!</h1>'
+end
+service 'apache2' do
+  action [:start, :enable]
+end
+
+
+
+    explore
+        $sudo apt-get install tree
+        $tree DIRECTORY_PATH
+    run
+        $sudo chef-client -z -r "recipe[COOKBOOK::RECIPE]"
+        e.g. $sudo chef-client -z -r "recipe[lamp::default]"
+        $sudo chef-client -z -r "recipe[lamp::default],recipe[lamp::web]"
+
+Attributes
+    (variables for Chef)
+    $chef generate attribute cookbooks/lamp default
+    $vim cookbooks/lamp/web.rb
+#web.rb
+#swap hardcoded path for variable
+#file 'var/www/html/index.html' do
+file node['lamp']['index_path'] do
+
+
+
+        $vim cookbooks/lamp/attributes/default.rb
+#default
+default['lamp']['index_path'] = 'var/www/html/index.html'

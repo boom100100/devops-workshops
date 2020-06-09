@@ -1,0 +1,65 @@
+Chef
+pulls
+Ruby
+
+TLDR:
+create
+	set up chef on workstation
+deploy (aka converge)
+	put chef on targets (node) from workstation, bypassing server (bypass aka bootstrap)
+test (aka verify)
+	run tests w/kitchen from workstation
+
+Course requires chef dev kit, virtual box, vagrant
+Apply code to a virtual machine via a chef server.
+Test with Kitchen.ci, configured in .kitchen.yml
+InSpec ServerSpec, Bats
+
+Vagrant virtual machines
+	$vagrant up
+	$vagrant status
+	$vagrant destroy
+
+Chef resource
+	"a statement of configuration policy"
+	type
+	name
+	property
+	action
+
+Converge : runs recipes
+
+Chef cookbooks
+		"describe a particular configuration we'd like to make"
+		$chef generate cookbook first_cookbook
+
+default recipe: what happens when the cookbook runs
+		runlets ordered list of recipes
+	$sudo chef-client -z --runlist "recipe_name"
+		OR
+	$sudo chef-client --local-mode cookbooks/cookbookname/recipes/default.rb
+
+$sudo chef-client generate recipe name
+
+Deployment
+	$knife bootstrap localhost -p 2222 -x vagrant -I /full/path/to/private/key -N vagrant -r 'recipe[lamp]' --sudo
+	check deployment
+			sign in to machine
+					$vagrant ssh
+					$curl localhost
+					Index of page indicates that the httpd cookbook setup worked
+
+Data Bags for security
+	$knife data bag create d_b_name
+	$knife data bag from file d_b_name path/to/file.format
+	$knife data bag list
+	$knife data bag show d_b_name
+	$knife data bag show d_b_name key
+
+	see if mysql setup worked
+			$mysql -h 127.0.0.1 -uroot -pfakepassword -s -e 'show databases;'
+
+
+	$knife node show vagrant
+	$knife node run_list add vagrant 'recipe[app_name]'
+	$knife node run_list set vagrant 'recipe[app_name]'
