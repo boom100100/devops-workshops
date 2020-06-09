@@ -1,0 +1,36 @@
+---
+- connection: network_cli
+  gather_facts: false
+  hosts: all
+  tasks:
+  - name: create a file on a remote machine
+    file:
+      dest: /tmp/file
+      state: '{{file_state}}'
+
+- connection: network_cli
+  gather_facts: false
+  hosts: web
+  tasks:
+  - name: create file on web machines
+    file:
+      dest: /tmp/web-file
+      state: '{{file_state}}'
+
+- connection: network_cli
+  gather_facts: false
+  hosts: all:!db
+  tasks:
+  - name: create file on web machines
+    file:
+      dest: /tmp/web-not-db-file
+      state: '{{file_state}}'
+
+- connection: network_cli
+  gather_facts: false
+  hosts: all:&backup:!web
+  tasks:
+  - name: create file on web machines
+    file:
+      dest: /tmp/backup-file
+      state: '{{file_state}}'

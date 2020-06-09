@@ -1,0 +1,208 @@
+Install Ansible
+    only host needs it installed
+    ***can use local machine instead of vm
+        $sudo apt-get update
+        $sudo apt-get install -y apache2
+        $sudo apt-get install -y software-properties-common
+        $sudo apt-add-repository --yes --update ppa:ansible/ansible
+        $sudo apt-get install -y python-netaddr
+        $sudo apt-get install -y ansible
+
+Install Ansible agents (these don't need Ansible installed)
+        $mkdir vagrant-agents
+        $cd vagrant-agents
+        #make another directory, then cd into it
+        $touch Vagrantfile
+        $vim Vagrantfile
+#Vagrantfile
+Vagrant.configure("2") do |config|
+config.vm.define "db01" do |db01|
+  config.vm.box = "hashicorp/precise32"
+  config.vm.provision :shell, path: "bootstrap.sh"
+  config.vm.network :forwarded_port, guest: 80, host: 5702
+
+  # config.ssh.private_key_path = "~/.ssh/id_rsa"
+  # config.ssh.forward_agent = true
+
+  db01.vm.provision "ansible" do |ansible|
+    ansible.playbook = "playbook.yml"
+  end
+end
+
+
+
+#Vagrantfile for other agent
+Vagrant.configure("2") do |config|
+  config.vm.define "web01" do |web01|
+    config.vm.box = "hashicorp/precise32"
+    config.vm.provision :shell, path: "bootstrap.sh"
+    config.vm.network :forwarded_port, guest: 80, host: 5703
+
+    # config.ssh.private_key_path = "~/.ssh/id_rsa"
+    # config.ssh.forward_agent = true
+
+    web01.vm.provision "ansible" do |ansible|
+      ansible.playbook = "playbook.yml"
+    end
+  end
+
+
+
+        $touch bootstrap.sh
+        $vim bootstrap.sh
+#bootstrap.sh
+apt-get update
+apt-get install -y apache2
+# apt-get install -y software-properties-common
+# apt-add-repository --yes --update ppa:ansible/ansible
+# apt-get install -y python-netaddr
+# apt-get install -y ansible
+if ! [ -L /var/www ]; then
+  rm -rf /var/www
+  ln -fs /vagrant /var/www
+fi
+
+
+
+
+        $touch index.html
+        $vim index.html
+#index.html
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1>Getting started with Vagrant!</h1>
+  </body>
+</html>
+
+
+
+        $vagrant up
+        #$vagrant ssh ID
+    then, add agents to inventory
+
+
+Inventory
+    a list of nodes that the host controls
+    the things to implement automation on
+    create
+        $touch inventory
+#inventory #make sure ports match Vagrantfile assignments
+[all:vars]
+# these defaults can be overridden for any group in the [group:vars] section
+#variable_name=value
+ansible_connection=network_cli
+#ansible_user=ansible
+#remote_user: NAME
+ansible_ssh_user=vagrant
+ansible_ssh_pass=vagrant
+ansible_network_os=ios
+#connection: network_cli
+#  gather_facts: false
+
+[all]
+web1 ansible_ssh_host=127.0.0.1:5702 ansible_net_hostname=web1 ansible_net_version=2
+db1 ansible_ssh_host=127.0.0.1:5703 ansible_net_hostname=db1 ansible_net_version=2
+
+[web]
+web1
+[db]
+db1
+    next is running automated tasks on this inventory
+
+
+
+Play
+    this is a task
+    as a play runs, it outputs results in the console
+Playbook
+    YAML files where Ansible code is written
+    they tell Ansible what to execute and which agents to execute it on
+    create
+        $mkdir playbooks
+        $cd playbooks
+        $touch first_playbook.yml
+#first_playbook.yml
+---
+- name: Network Getting Started First Playbook
+  connection: network_cli
+  gather_facts: false
+  hosts: all
+  tasks:
+  - name: create a file on a remote machine
+    file:
+      dest: /tmp/file
+      state: '{{file_state}}'
+
+- connection: network_cli
+  gather_facts: false
+  hosts: web
+  tasks:
+  - name: create file on web machines
+    file:
+      dest: /tmp/web-file
+      state: '{{file_state}}'
+
+- connection: network_cli
+  gather_facts: false
+  hosts: all:!db
+  tasks:
+  - name: create file on web machines
+    file:
+      dest: /tmp/web-not-db-file
+      state: '{{file_state}}'
+
+- connection: network_cli
+  gather_facts: false
+  hosts: all:&backup:!web
+  tasks:
+  - name: create file on web machines
+    file:
+      dest: /tmp/backup-file
+      state: '{{file_state}}'
+
+
+
+        $touch tasks.yml
+#tasks.yml
+---
+
+- name: Network Getting Started First Playbook
+  connection: network_cli
+  gather_facts: false
+  hosts: all
+  tasks:
+
+
+    - name: Display the config
+      debug:
+        msg: "The hostname is {{ ansible_net_hostname }} and the OS is {{ ansible_net_version }}"
+
+- name: Network Again
+  connection: network_cli
+  gather_facts: false
+  hosts: web
+  tasks:
+
+
+    - name: Display the config
+      debug:
+        msg: "The hostname is {{ ansible_net_hostname }} and the OS is {{ ansible_net_version }}"
+
+
+
+
+#install_packages.yml
+- hosts: all
+
+  tasks:
+    - name: Install packages
+      package:
+        name: '{{ packages }}'
+
+
+
+      run playbooks
+            $ansible-playbook -i ../inventory tasks.yml -e file_state=touch
+            $ansible-playbook -i ../inventory install_packages.yml -e packages=httpd
+            $ansible-playbook -i ../inventory install_packages.yml -e packages=httpd,default-jre

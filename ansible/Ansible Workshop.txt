@@ -1,0 +1,187 @@
+Source:
+https://medium.com/@perwagnernielsen/ansible-tutorial-part-1-inventory-files-vagrant-and-remote-hosts-33a15b0185c0
+
+	$ mkdir ansible_tutorial
+	$ cd ansible_tutorial
+	$ virtualenv venv -p python3.6
+	$ source venv/bin/activate
+	$ pip install ansible flask
+	$ touch Vagrantfile
+#Vagrantfile
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+Vagrant.configure("2") do |config|
+  config.vm.define "web01" do |web01|
+    web01.vm.box = "bento/ubuntu-16.04"
+    web01.vm.network "private_network", ip: "192.168.33.11"
+    web01.vm.hostname = "web01"
+    web01.ssh.forward_agent = true
+    web01.ssh.port = 2222    
+    web01.vm.synced_folder ".", "/vagrant"
+    web01.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
+    end
+    web01.vm.provision "ansible" do |ansible|
+      ansible.playbook = "playbook.yml"
+    end
+  end
+end
+
+
+
+	$ touch playbook.yml
+#playbook.yml
+---
+- name: Web01
+  hosts: all
+  become: yes
+  gather_facts: False
+  pre_tasks:
+    - name: Install python for Ansible
+      raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+      changed_when: False
+    - setup: # aka gather_facts
+
+
+
+	$ vagrant up
+	$touch ansible.cfg
+#ansible.cfg
+[defaults]
+nocows = 1
+
+
+
+#If you don't have a ssh key in ~/.ssh, run:
+	$ssh-keygen -o
+	name key file
+#otherwise, just continue from here:
+	$ssh-copy-id -i ~/.ssh/id_rsa.pub root@123.123.123.123
+	#name key and list ip address according to folder contents and Vagrantfile, respectively
+	$touch inventory.yml
+#inventory.yml
+---
+[web01]
+123.123.123.123
+[web01:vars]
+ansible_ssh_user=root
+ansible_ssh_private_key_file=/home/<USERNAME>/.ssh/id_rsa
+
+
+
+	$touch hosts_vagrant hosts_staging
+	#both in the same folder as the Vagrantfile
+#hosts_vagrant
+[all:vars]
+env=vagrant
+[web]
+127.0.0.1
+[web:vars]
+ ansible_port=2222 
+ ansible_user=vagrant 
+ ansible_private_key_file="./.vagrant/machines/web01/virtualbox/private_key"
+
+
+
+#hosts_staging
+[all:vars]
+env=staging
+[web]
+123.123.123.123
+[web:vars]
+ansible_ssh_user=root
+ansible_ssh_private_key_file=/home/perwagner/.ssh/id_rsa
+
+
+
+	$ansible -i ./hosts_staging web -m ping
+	$ansible-playbook -i ./hosts_staging playbook.yml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Installed Ansible for Python 3:
+
+https://docs.ansible.com/ansible/latest/reference_appendices/python_3_support.html
+
+working directory:
+	$pwd
+	#/Users/bernadettedavis/github/devops/ansible/ansible-working
+
+
+.yml - playbook, and inventory formats
+
+left off on first playbook:
+$ansible-playbook -i ../inventory.yml first_playbook.yml 
+
+configure nodes?
+
+Set up vagrant:
+download, install
+
+run the following:
+	$vagrant init hashicorp/bionic64
+		can use envs other than hashicorp/bionic64
+		see catalog: https://app.vagrantup.com/boxes/search
+
+or
+	$vagrant box add hashicorp/bionic64
+	create script bootstrap.sh in same directory as Vagrantfile
+	for creating uniform virtual environment (include dependencies)
+	input the following:
+apt-get update
+apt-get install -y apache2
+if ! [ -L /var/www ]; then
+  rm -rf /var/www
+  ln -fs /vagrant /var/www
+	and offer content in same directory at index.html:
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1>Getting started with Vagrant!</h1>
+  </body>
+</html>
+
+
+after running:
+$vagrant up
+$vagrant ssh
+
+to reload:
+$vagrant reload --provision
+$vagrant ssh
+
+to see all vagrant machines:
+$vagrant global-status
+
+to stop:
+$vagrant destroy
+
+to delete box:
+$vagrant box remove
+
+
+to access content hosted on vagrant server:
+$curl http://127.0.0.1:4567
+
+Once Vagrant works, add the host to the ansible inventory file.
+Then, try dispatching the playbook command:
+	$ansible-playbook -i ../inventory.yml first_playbook.yml
+

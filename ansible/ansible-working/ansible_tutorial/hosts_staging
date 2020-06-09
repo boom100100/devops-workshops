@@ -1,0 +1,7 @@
+[all:vars]
+env=staging
+[web]
+192.168.33.11
+[web:vars]
+ansible_ssh_user=root
+ansible_ssh_private_key_file=/home/perwagner/.ssh/id_rsa

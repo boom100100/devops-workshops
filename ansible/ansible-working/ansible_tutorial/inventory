@@ -1,0 +1,6 @@
+---
+[web01]
+192.168.33.11
+[web01:vars]
+ansible_ssh_user=root
+ansible_ssh_private_key_file=/home/bernadettedavis/.ssh/id_rsa

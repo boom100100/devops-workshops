@@ -1,0 +1,43 @@
+Ansible
+pushes
+Python
+
+TLDR:
+create
+		ansible host
+deploy
+		network device target (nodes)
+		deployment limited to specific nodes in inventory
+		must prevent gathering facts if you don't set certain networking information
+test
+		can use scripts
+
+declarative
+
+Show inventory
+$more ../../inventory
+
+Playbook - group of programs
+	Assigned to target hosts (nodes)
+	Does tasks
+		tasks named by tags
+Connect to nodes via SSH
+
+$ansible-playbook -i ../inventory vault.yml --tags create --ask-vault-pass
+$ansible-playbook -i ../inventory vault.yml --tags destroy --ask-vault-pass
+
+Vault - security
+$more group_vars/all/vars
+	for inputting pw
+$more group_vars/all/vault
+	shows encrypted pw
+Don't put on GitHub until this is set.
+ansible-vault encrypt vault
+(Encrypts non-encrypted pw)
+ansible-vault edit vault
+(Allows editing, re-encrypting pw)
+Ansible Fault
+
+
+VyOS
+$ansible-playbook -i ../inventory-vyos vyos_ip.yml

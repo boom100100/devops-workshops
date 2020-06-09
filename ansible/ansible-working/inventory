@@ -1,0 +1,16 @@
+[all:vars]
+# these defaults can be overridden for any group in the [group:vars] section
+ansible_connection=network_cli
+#ansible_user=ansible
+ansible_ssh_user=vagrant
+ansible_ssh_pass=vagrant
+ansible_network_os=ios
+file_state=touch
+[all]
+web1 ansible_ssh_host=127.0.0.1:5702 ansible_net_hostname=web1 ansible_net_version=2
+db1 ansible_ssh_host=127.0.0.1:5703 ansible_net_hostname=db1 ansible_net_version=2
+
+[web]
+web1
+[db]
+db1
