@@ -1,0 +1,285 @@
+	$ mkdir jenkins_working
+	$ cd jenkins_working
+	$ virtualenv venv -p python3.6
+	$ source venv/bin/activate
+	$ touch Vagrantfile
+#Vagrantfile
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+Vagrant.configure("2") do |config|
+  config.vm.define "web01" do |web01|
+    web01.vm.box = "bento/ubuntu-16.04"
+    web01.vm.network "private_network", ip: "192.168.33.11"
+    web01.vm.hostname = "web01"
+    #for GUI, uncomment the following line
+    #web01.vm.gui = true
+    web01.ssh.forward_agent = true
+    web01.ssh.port = 2222
+    web01.vm.synced_folder ".", "/vagrant"
+    web01.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
+    end
+    web01.vm.provision "ansible" do |ansible|
+      ansible.playbook = "playbook.yml"
+    end
+  end
+end
+
+
+	$ touch playbook.yml
+#playbook.yml
+---
+- name: Web01
+  hosts: all
+  become: yes
+  gather_facts: False
+  pre_tasks:
+    - name: Install python for Ansible
+      raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+      changed_when: False
+    - setup: # aka gather_facts
+
+
+
+	$ vagrant up
+	$touch ansible.cfg
+#ansible.cfg
+[defaults]
+nocows = 1
+
+
+
+#If you don't have a ssh key in ~/.ssh, run:
+	$ssh-keygen -o
+	name key file
+#otherwise, just continue from here:
+	$ssh-copy-id -i ~/.ssh/id_rsa.pub root@123.123.123.123
+	#name key and list ip address according to folder contents and Vagrantfile, respectively
+
+
+
+
+
+This should be enough to get started with Vagrant. If not, pick up from the preceding line in Ansible Workshop.
+
+Start Vagrant machine
+	$vagrant up
+	$vagrant global-status
+		to get id/name of machine
+	$vagrant ssh <machine_name_or_id>
+
+Install Jenkins (from virtual machine)
+	$wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -
+	$sudo vim /etc/apt/sources.list
+#/etc/apt/sources.list
+#add the following line to the end
+deb https://pkg.jenkins.io/debian-stable binary/
+	$sudo apt update
+	$sudo apt install default-jdk
+	$java -version
+	$sudo apt-get update
+	$sudo apt-get install jenkins
+
+Start Jenkins
+	$sudo systemctl start jenkins
+	check status with $sudo systemctl status jenkins
+
+Visit Jenkins in browser
+	in vagrant machine, get ip address with $ifconfig
+	in host machine, visit ipaddress:8080
+		(vagrant is headless, but can run with gui)
+		(also, verify port, especially if firewall exception is necessary)
+		https://www.jenkins.io/doc/pipeline/tour/getting-started/
+	password for Jenkins is in vagrant machine $sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+	it may be in a different folder, follow instructions that browser page offers for signing in.
+
+
+New Job
+	New Item > New Pipeline
+		Jenkins > New Item > enter name, choose Pipeline > ok
+		input script text
+	Run Build
+		choose build now
+		reload page if you can add params
+
+Integrate with GitHub (no creds required)
+	New Item > New Pipeline
+		Jenkins > New Item > enter name, choose Pipeline > ok
+		Change Definition (under Pipeline) to Pipeline script from SCM
+		Change SCM to Git, add repository URL (with .git at the end)
+		Under Build Triggers, check Poll SCM, add schedule
+		Save the pipeline
+	Make sure repository has Jenkinsfile
+#Jenkinsfile
+pipeline {
+    agent any
+
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building..'
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Testing..'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying....'
+            }
+        }
+    }
+}
+
+
+
+Integrate with GitHub (with creds)
+	Get API key from Github
+		Github > User settings > Developer settings
+		Personal access tokens > Generate New
+		jenkins-integration as name/note (or similar format) > check repo, admin:repo_hook, and notifications
+		Copy the token value and bring it to Jenkins *save this for following webhook setup*
+	Connect to Github
+		Jenkins > Manage Jenkins > Configure System
+		Scroll down to Github > Add Github Server > change name to github
+		Under Credentials, choose add > change Kind to Secret text > paste Github token in  Secret field > make ID same as note/name supplied in Github for token > choose Add
+		Click - none -, choose jenkins-integration
+		Click Test Connection. Success == "Credentials verified..."
+
+39bc5dd73dd3a52a04de801768b947d44d2049d3 - integration
+e7f2c960f222a95a2bd46673fee7af2eae085b8f - hook
+
+Trigger Github Webhook build
+	New Item > enter name, choose New Multibranch Pipeline > ok
+	Branch Sources > Add Source > Github > Credentials > Add > Jenkins
+	Enter Github username, token (as password), unique id
+	Enter repository URL, click Validate, make sure Build Configuration Mode is by jenkinsfile Save
+	#Click Scan Repository Now
+	******Note: webhook should trigger automatically. But must expose any local environments so that Github knows where to send POST.
+		$sudo apt-get update
+		$sudo apt-get install ngrok-client
+		$ngrok web01:80
+
+
+Add SSH build agent
+	Manage Jenkins > Manage Nodes > New Node
+		name > ok
+		2 executors, remote root directory: /home/jenkins, labels: metal, Launch method: via ssh
+		Global domain, SSH Username with private key, Global scope, enter jenkins-ssh or something unique as ID, jenkins as username
+		Host Key: Non verifying
+
+Scale builds with a cloud service
+	Manage Jenkins > Manage Plugins > Google Compute
+
+Using Docker Images for Agents
+...
+
+Notifications
+	Manage Jenkins > Manage Plugins > Slack
+	or add browser extension (e.g. Jenkins Notifier for Chrome)
+
+Job View Status Badge
+	Manage Jenkins > Manage Plugins > embeddable build status
+
+Code coverage tests and reports
+	New Item > name, pipeline, ok
+	Add code formatted to test and create artifact(s).
+		NOTE it is possible to add manual trigger to indicate test should continue
+	Coverage Plugins can also help
+#pipeline code
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                sh '''
+                  echo This > app.sh
+                  echo That >> app.sh
+                '''
+            }
+        }
+        stage('Test') {
+            steps {
+                sh '''
+                  grep This app.sh >> ${BUILD_ID}.cov
+                  grep That app.sh >> ${BUILD_ID}.cov
+                '''
+            }
+        }
+        stage('Coverage'){
+            steps {
+                sh '''
+                  app_lines=`cat app.sh | wc -l`
+                  cov_lines=`cat ${BUILD_ID}.cov | wc -l`
+                  echo The app has `expr $app_lines - $cov_lines` lines uncovered > ${BUILD_ID}.rpt
+                  cat ${BUILD_ID}.rpt
+                '''
+                archiveArtifacts "${env.BUILD_ID}.rpt"
+            }
+        }
+    }
+}
+
+
+
+Test Results Stop a build
+	Pipeline script must include conditions for exiting during job
+
+REST API POST to trigger build
+	get user token
+		Jenkins UI > user icon in upper-right corner > configure > API token: add new token, name it
+			110bdddbc2ba88c8f31ff5525e1ae81bca
+	request csrf crumb, copy output up until $
+		$curl --user "admin:TOKEN" 'http://jenkins.kumulus.co:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)'
+	save crumb
+	$curl -X POST http://jenkins.kumulus.co:8080/job/multi-step/build --user admin:TOKEN --data-urlencode json='' -H "Jenkins-Crumb:....."
+		note that local vms require special setup to expose them to the internet and be able to receive post requests
+
+Security
+	Manage Jenkins > Configure Global Security
+		change authorization strategy to Matrix-Based Security
+		create admin user group, give all access
+		provision everything else more selectively
+	Credentials stores values that can be secret. These won't necessarily be exposed in the pipeline.
+	Audit
+		See builds at Jenkins > (arrow next to Jenkins) > All > Build History
+		Manage Jenkins > Manage Plugins > look for Audit Trail
+			Add it, restart Jenkins
+			Jenkins > Manage Jenkins > Configure System > scroll to Audit Trail
+			Add Logger > Log file > add path
+	Folders for Security
+		Jenkins > New Item > name, choose Folder > ok
+
+Creating distinguishable artifacts (files)
+	Include line in pipeline
+		archiveArtifacts artifacts: 'filename.txt', fingerprint: true, onlyIfSuccessful: true
+#pipeline script text
+...
+				stage('Archive') {
+            steps {
+                archiveArtifacts artifacts: 'output.txt', fingerprint: true, onlyIfSuccessful: true
+            }
+        }
+...
+	Jenkins > Check File Fingerprint
+
+Job promotion for long-running pipelines
+	...
+
+Snippets
+	Pipeline code chooser that supplies lines of code that fulfill a certain functionality
+	Choose pipeline syntax link under pipeline script box.
+
+Global Variables
+	couldn't find link
+
+Best practices
+	distribute builds with agents
+	automate/install agents
+	Library(@UserLib)
+	Jenkinsfile (on github) as code
+	Use views to organize
+
+functional vagrant machine w/ jenkins lives in jenkins-working

@@ -1,0 +1,29 @@
+Jenkins
+
+TLDR:
+after dev/test/staging code
+deploy it
+GitHub webhook often used to automate deployment
+
+
+build is the result of a job aka project
+	i.e. historical record
+	but you must complete a build before that record exists
+
+Continuous Integration
+	develop
+	test
+
+Continuous Delivery
+	develop
+	test
+	stage
+
+Continuous Deployment
+	develop
+	test
+	stage
+	production
+
+8080 - Jenkins default port
+22 ssh
