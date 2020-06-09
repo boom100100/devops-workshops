@@ -1,0 +1,156 @@
+Google Cloud Platform
+
+TLDR:
+use to get to market fast	
+Google Compute Engine
+	virtual machines
+	app engine, compute engine, kubernetes engine, cloud functions, cloud run
+Google Kubernetes Engine
+	raw container clusters
+Google App Engine, Google Cloud Functions
+	managed container clusters
+Google Cloud Functions
+	functions
+Google Cloud Storage
+	storage buckets - files
+Google Cloud SQL
+	store data
+https://github.com/googlecloudplatform
+https://github.com/lynnlangit/gcp-essentials
+
+
+
+
+scaleable
+
+account objects
+organization => folders => teams => projects => infrastructure
+
+projects
+	consists of id, name, number
+
+resources
+	
+
+compute engine api
+
+vm setup
+	hw requirements (CPU, RAM)
+
+GCE resources
+	can put them in a Kubernetes (or docker?) cluster
+	Cloud Run for bring-your-own-container
+
+
+istio
+knative
+
+Cloud Run/Cloud Run on GKE architectures
+	knative (api)
+	gcloud (cli)
+
+
+
+Google Cloud Functions (competitor to AWS Lambda)
+
+Google BigTable
+	stores data in massively scalable tables
+
+
+memorystore
+	managed database service
+
+
+datastore
+	nosql-managed wide column stores
+
+Google pub/sub (publish and subscribe)
+	many-to-many messaging
+
+Google Dataprep trifacta
+	builds data pipelines
+	integrates with GCS and BigQuery
+
+Google Data Fusion
+	builds data pipelines
+	integrates with many more than what Google Dataprep can connect to
+
+Google Data Studio
+	takes bigquery result and presents it visually in way of user's choice
+	creates reports
+	supports many data sources
+
+GCP Machine Learning
+	ML Engine/AI Platform
+		AI Hub
+			indexes machine learning services
+		managed Jupyter notebooks
+			can import bigQuery
+			can run as alt cli
+		model training
+		prediction
+		kubeflow
+
+
+Cloud Vision API
+	runs jobs and models
+	AutoML Image Classification can recognize things in a photo
+
+Cloud AutoML Tables
+	bigQuery or cloud storage
+		data from GCS bucket in the same region
+		data also must be from regional, not multi-regional bucket
+		data must have 1000 rows
+	train model based on data features - hyperparameterization
+		E.g. To predict price, the service will examine the data based on what it determines is the best model. Then, it will return what correlations exist between specific features and price. For example, in one model, the product for sale often  was related to what price appeared in that data row. Adding new incomplete data can then fill in an unspecified price.
+
+Cloud Scheduler and Tasks
+	Cloud Scheduler and Tasks do scheduled or one-off tasks
+
+Pub/Sub v. Cloud Tasks
+	?
+
+aerospike
+	option for no-sql third-party vendor database
+
+Cloud Code
+	integrates w/ IDE
+
+Stackdriver 
+	Logs, monitoring
+
+gcp application architecture concepts
+	microservices
+		functions or serverless
+		can bring your own container
+	containers
+		kubernetes
+			libraries knative kubeflow
+			abstraction level
+	virtual machines
+		control and management
+		leverage GCP marketplace
+		lift and shift
+	other
+		security and networking baselines
+		machine learning
+		use tools
+		abstraction level
+
+single-page and API-based architectures
+	static
+	content hosting
+	api hosting
+
+web blog and managed databases
+	dynamic hosting
+	look in marketplace for common architectures
+
+web app on Google App Engine
+	storage, database, functions, and Cloud Vision API
+	Cloud Vision API
+		can easily and quickly add complex machine learning functionality to app 
+	
+
+Big data log processing
+	can be serverless
