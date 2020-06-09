@@ -1,0 +1,98 @@
+Google Cloud Platform Enterprise
+
+TLDR:
+enterprise concerns:
+	availability, reliability
+	cost, security, compliance
+	services and partners
+GCP structure
+	organization => folders => projects => resources
+https://github.com/googlecloudplatform
+https://github.com/lynnlangit/gcp-essentials
+Core enterprise scenarios
+	lift and shift
+	new internal application
+
+
+
+Core enterprise scenarios
+	lift and shift
+		migrating to GCP service
+		start w/ migrating virtual machines
+		use Anthos Migrate and Config Management
+	new internal application
+		choose serverless or containers*
+			*note: serverless can have containers, too
+			can limit customer to serverless host because they aren't (easily) migrate-able
+		
+	
+cloud scenarios
+	ci/cd pipeline
+	drift detection
+
+access control
+	G Suite domains
+	manage active directory
+
+project inherits permissions from organization
+
+config for use options
+	GCLOUD
+		scripting
+	GCP SDK
+		select language and ide
+	third-party options
+
+virtual private cloud (VPC) network
+	associate subnets
+	can share
+	choose between regional or global dynamic routing
+
+cloud adoption patterns
+	move internal to cloud
+	create new app
+
+Cloud Spanner
+	for exporting database to Cloud Storage bucket
+	or use Cloud Dataflow Connector to read/write data to Cloud Spanner in a Cloud Dataflow pipeline
+
+IoT Core
+	devices, gateways, monitoring
+
+Event Data pipelines tools
+	Google Dataproc
+		managed hadoop spark clusters (Apache Spark, can have Jupyter notebooks)
+	Google Dataflow
+		data processing (Apache Beam)
+	Cloud Composer
+	BigQuery
+
+
+Apache Beam
+	higher-level abstraction
+	you can connect Apache Spark to it
+	
+	alternative to Dataproc and Dataflow
+
+Genomics data pipelines
+	variant transforms tool
+
+ci/cd
+	ci: code, build, test
+	cont. dev: code, build, test, artifact management
+	cont. deployment: code, build, test, artifact management, deploy
+
+ci/cd artifacts
+virtual machines, containers, serverless, mobile
+
+Deployments, GCP Marketplace, and templates
+	marketplace has known-good configurations
+	when deploying a brand-new project, start with one environment, and expand if desired and necessary after getting the first one working
+
+Private Catalog and Container Registry
+
+cloud source repositories
+	source code
+
+cloud build
+	
