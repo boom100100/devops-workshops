@@ -1,0 +1,267 @@
+Kubernetes (K8s)
+    deploys, scales, and operates containers to clusters (manager/worker machines)
+    many container platforms can run K8s
+    consists of master, worker node machines and software that manages K8s
+    install
+        $brew install kubectl
+        $kubectl version --client
+
+Minikube
+    K8s implementation
+    deploys vm with one cluster
+    install
+        $brew install minikube
+        $minikube version
+    start
+        $minikube start
+        $kubectl get nodes
+    stop
+    add node
+
+Vagrant vms
+    create Vagrantfile
+#Vagrantfile
+Vagrant.configure("2") do |config|
+  config.vm.provider :virtualbox do |v|
+    v.memory = 1024
+    v.cpus = 1
+  end
+
+  config.vm.provision :shell, privileged: true, inline: $install_common_tools
+
+  config.vm.define :master do |master|
+    master.vm.box = "ubuntu/xenial64"
+    master.vm.hostname = "master"
+    master.vm.network :private_network, ip: "10.0.0.10"
+    master.vm.provision :shell, privileged: false, inline: $provision_master_node
+  end
+
+  %w{worker1 worker2 worker3}.each_with_index do |name, i|
+    config.vm.define name do |worker|
+      worker.vm.box = "ubuntu/xenial64"
+      worker.vm.hostname = name
+      worker.vm.network :private_network, ip: "10.0.0.#{i + 11}"
+      worker.vm.provision :shell, privileged: false, inline: <<-SHELL
+sudo /vagrant/join.sh
+echo 'Environment="KUBELET_EXTRA_ARGS=--node-ip=10.0.0.#{i + 11}"' | sudo tee -a /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+SHELL
+    end
+  end
+
+  config.vm.provision "shell", inline: $install_multicast
+end
+
+$install_common_tools = <<-SCRIPT
+# bridged traffic to iptables is enabled for kube-router.
+cat >> /etc/ufw/sysctl.conf <<EOF
+net/bridge/bridge-nf-call-ip6tables = 1
+net/bridge/bridge-nf-call-iptables = 1
+net/bridge/bridge-nf-call-arptables = 1
+EOF
+
+# disable swap
+swapoff -a
+sed -i '/swap/d' /etc/fstab
+
+# Install kubeadm, kubectl and kubelet
+export DEBIAN_FRONTEND=noninteractive
+apt-get -qq install ebtables ethtool
+apt-get -qq update
+apt-get -qq install -y docker.io apt-transport-https curl
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+deb http://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+apt-get -qq update
+apt-get -qq install -y kubelet kubeadm kubectl
+SCRIPT
+
+$provision_master_node = <<-SHELL
+OUTPUT_FILE=/vagrant/join.sh
+rm -rf $OUTPUT_FILE
+
+# Start cluster
+sudo kubeadm init --apiserver-advertise-address=10.0.0.10 --pod-network-cidr=10.244.0.0/16 | grep "kubeadm join" > ${OUTPUT_FILE}
+chmod +x $OUTPUT_FILE
+
+# Configure kubectl
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# Fix kubelet IP
+echo 'Environment="KUBELET_EXTRA_ARGS=--node-ip=10.0.0.10"' | sudo tee -a /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+# Configure flannel
+curl -o kube-flannel.yml https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
+sed -i.bak 's|"/opt/bin/flanneld",|"/opt/bin/flanneld", "--iface=enp0s8",|' kube-flannel.yml
+kubectl create -f kube-flannel.yml
+
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+SHELL
+
+$install_multicast = <<-SHELL
+apt-get -qq install -y avahi-daemon libnss-mdns
+SHELL
+
+K8s Pod
+    consists of
+        container, storage resources, unique IP address, options
+    states
+        pending, running, succeeded, failed, CrashLoopBackOff
+
+    create deployment (pods, services, deployment)
+
+        $kubectl create NAME --image=IMAGE
+        $kubectl create -f helloworld-pod-with-labels.yml
+        #$kubectl run hw --image=karthequian/helloworld --port=80
+        $kubectl get pods
+        $kubectl get deployments
+    check pods
+
+        $kubectl get rs
+        #$kubectl expose deployment hw --type=NodePort
+    remove pod
+        $kubectl delete pod,service,deployment name1 name2 name3
+
+Services
+    these allow an applications to receive traffic
+    exposes node to outside of cluster
+    create service
+        $kubectl get services
+        $kubectl create deployment hw --image=karthequian/helloworld
+        $kubectl expose deployment/hw --type="NodePort" --port 8080
+        $kubectl get services
+        $kubectl describe services/hw
+        $export NODE_PORT=$(kubectl get services/hw -o go-template='{{(index .spec.ports 0).nodePort}}')
+        $echo NODE_PORT=$NODE_PORT
+        $curl $(minikube ip):$NODE_PORT
+
+Labels
+    for pods
+    show
+        $kubectl get pods --show-labels
+        $kubectl get pods --selector env=production --show-labels
+        $kubectl get pods --selector LABEL_NAME=VALUE --show-labels
+        $kubectl get pods --selector LABEL_NAME!=VALUE --show-labels #note NOT value
+        $kubectl get pods --selector dev-lead=VALUE,LABEL_NAME=VALUE
+        $kubectl get pods --selector dev-lead=VALUE,LABEL_NAME=VALUE --show-labels #untested
+        $kubectl get pods -l 'dev-lead in (VALUE1,VALUE2)'
+        $kubectl get pods -l 'dev-lead not in (VALUE1,VALUE2)'
+        -l 'dev-lead not in (VALUE1,VALUE2)' #can go after delete pod command
+    add
+        $kubectl label pods --show-labels
+    change
+        $kubectl label po/helloworld app=helloworldapp --overwrite
+    delete
+        $kubectl label pod/helloworld app-
+
+Configmap
+    $kubectl create configmap logger --from-literal=log_level=debug
+
+Secrets
+    $kubectl create secret generic apikey --from-literal=api_key=123
+    $kubectl get secrets
+    $kubectl get secret apikey
+    secretKeyRef
+#secretreader-deployment.yml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: secretreader
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: secretreader
+    spec:
+      containers:
+      - name: secretreader
+        image: karthequian/secretreader:latest
+        env:
+        - name: api_key
+          valueFrom:
+            secretKeyRef:
+              name: apikey
+              key: api_key
+
+
+
+Basic flow
+    start vm
+        $minikube start
+        $kubectl get nodes
+    set up deployment
+        $kubectl create deployment hw --image=karthequian/helloworld
+        #$kubectl create -f guestbook.yml #fails to set up deployments
+    expose app
+        run this sequence
+            #$kubectl get deployments
+            $kubectl expose deployment NAME --type=NodePort --port=80
+            $kubectl expose deployment hw --type=NodePort --port=80
+            $minikube service DEPLOYMENT_NAME
+        #or
+            #$echo -e "\n\n\n\e[92mStarting Proxy. After starting it will not #output a response.\n";
+            #$kubectl proxy
+                #test in new terminal
+                    #$curl http://localhost:8001/version
+
+Deploy to Production
+    set up master with docker and K8s
+    start kubeadm, provision K8s control plane, provide join token
+        $kubeadm init #this command does all of this
+    set up worker nodes
+        $kubeadm join TOKEN #on worker node machines
+    install pod network
+      flannel or weave net are good options
+
+Namespaces
+    uses
+        roles and responsibilities
+        defining environments
+            dev, test, prod
+        customer partitioning
+        application partitioning
+    get
+        $kubectl get namespaces
+        $kubectl create namespace NAME
+        $kubectl delete namespace NAME
+        $-n NAME #add to end of resource deployment command
+
+Users
+    people and service accounts
+    consist of username, uid, group, extra fields
+
+Health Checks
+    is everything available?
+        $kubectl get nodes
+        $kubectl get pods
+        $kubectl get services
+        $kubectl get deployments
+    if not, what are events?
+        $kubectl describe po/NAME_OF_POD
+        $kubectl describe services/hw
+        $kubectl describe deployment NAME_OF_SERVICE
+    services
+        $minikube dashboard
+        prometheus, heapster, cadvisor
+            these link to grafana
+                prometheus and grafana are open-source
+
+Troubleshooting
+    deployment unavailable: ErrImagePull status
+      check events for error description
+          $kubectl describe po/NAME_OF_POD
+      look at log files
+          $kubectl logs NAME_OF_POD
+      look at dashboard
+          $kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml #sets cpu, memory monitoring
+          $minikube dashboard
+      look at processes for clues
+          $kubectl exec -it POD_NAME /bin/bash
+          $kubectl exec -it POD_NAME -c CONTAINER_NAME /bin/bash
+          $ps -ef

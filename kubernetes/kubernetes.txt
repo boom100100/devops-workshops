@@ -1,0 +1,84 @@
+Kubernetes
+
+
+TLDR:
+definition
+	platform that deploys, scales, operates app containers
+master node (via kubectl cli)
+	scheduler
+	api server
+	controller manager
+Worker node (exposed to internet)
+	kubelet
+	docker pods
+	kube-proxy
+Use minikube when just starting out
+Rollout/rollback
+	$kubectl set image deployment/dep-name
+	$kubectl rollout undo deployment --to-revision=REVISION
+Error checking
+	recognize pod isn't ready, see status
+		$kubectl describe deployment namespace
+		$kubectl get deployments
+	look at logs
+		kubectl describe deployment name
+		$kubectl logs deployment/dep-name
+	look at deployment details
+		$kubectl exec -it deployment-name /bin/bash
+		$ps -ef
+
+
+Docker swarm competitor
+
+See dashboard for status
+
+create
+	$kubectl create -f something.yml
+
+show
+	$kubectl get nodes --show-labels
+	$kubectl get nodes --show-labels -n namespace-name
+
+Replicasets controller
+	makes sure required number of pods are running
+
+deployment controller
+	pause, resume deployment
+	get deployment status
+
+Replica controller is deprecated
+
+backend services let pods communicate with each other
+
+Namespace
+	virtual cluster
+
+
+kubeadm for deployment
+labels
+	filter kubectl commands
+
+Kubelet
+	node agent
+
+Kube-proxy
+	network proxy
+	another node agent
+
+Borg
+	predecessor of Kubernetes
+
+collection of software processes unified by one namespace, with access to an operating system kernel that it shares with other containers and little to no access between containers
+simplifies release management because it isolates problems
+
+Different from virtual machine
+
+
+Kube-scheduler
+	Multi-host container scheduling
+	Assigns pods to nodes at runtime
+	Checks resources, quality of service, policies, and user specs before scheduling
+
+Flexible and modular
+
+cloud native computing foundation
