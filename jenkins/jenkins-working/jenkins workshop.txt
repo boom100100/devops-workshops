@@ -148,9 +148,6 @@ Integrate with GitHub (with creds)
 		Click - none -, choose jenkins-integration
 		Click Test Connection. Success == "Credentials verified..."
 
-39bc5dd73dd3a52a04de801768b947d44d2049d3 - integration
-e7f2c960f222a95a2bd46673fee7af2eae085b8f - hook
-
 Trigger Github Webhook build
 	New Item > enter name, choose New Multibranch Pipeline > ok
 	Branch Sources > Add Source > Github > Credentials > Add > Jenkins
