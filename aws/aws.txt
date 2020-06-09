@@ -1,0 +1,82 @@
+AWS
+
+TLDR:
+AWS covers
+IaaS, PaaS, SaaS
+scalable, redundancy options
+
+relational database service
+	many database options mysql, postgres, oracle
+elastic container service
+load balancer
+
+autoscaling
+	launch configuration - what to scale
+	autoscaling group - where to launch
+	scaling policy - when to launch
+
+cloudwatch
+	monitoring, alarms for resources
+
+elastic beanstalk
+	convenience
+	you have less control
+	it automatically handles deployment
+
+route 53
+	
+OpsWorks Stacks
+	alternative to elastic beanstalk - has more control
+	relies on chef config recipes
+	OpsWorks agent goes on nodes
+	lifecycle
+		stack created
+		layers defined
+		app defined
+		chef recipes written
+		instances launched
+		app deployed
+
+cloudformation
+	cloudformer
+		config, launch resources
+
+codeDeploy
+	what, how, where to deploy
+
+elasticache
+	redis or memcache
+
+ttl
+
+cloudfront
+	a content delivery network (cdn)
+	makes content quickly available by making it available in many locations (edge locations)
+
+cloudSearch
+	search engine
+	stopwords, synonyms, stemming
+	suggesters, expressions and regex
+
+
+s3
+	buckets keys objects(data blob) glacier
+reduced redundancy storage
+	data changes slowly
+glacier
+	slow, data not allowed to change (for archiving)
+
+lambda, gateway api
+	serverless app setup
+
+simple workflow (SWF)
+	logs what happens during app application
+
+simple message queue service (SQS)
+	if one component fails, SQS prevents others from failing
+	what remains to be processed is saved
+	polls for errors (pull)
+
+Simple Notification Service (SNS)
+	push notifications about alerts
+	supports http, https, email, email-json, sms, sqs, application, lambda
